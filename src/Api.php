@@ -8,12 +8,13 @@ class Api
 {
     const DEFAULT_BASE_URI = 'https://pay.solidgate.com/api/v1/';
 
-    const BASE_FORM_PATTERN_URL='https://pay.solidgate.com/api/v1/form?merchant=%s&form_data=%s&signature=%s';
+    const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
 
     protected $client;
     protected $merchantId;
     protected $privateKey;
     protected $exception;
+    protected $formUrlPattern;
 
     public function __construct(
         string $merchantId,
@@ -22,6 +23,7 @@ class Api
     ) {
         $this->merchantId = $merchantId;
         $this->privateKey = $privateKey;
+        $this->formUrlPattern = $baseUri . self::FORM_PATTERN_URL;
 
         $this->client = new Client(
             [
@@ -91,16 +93,17 @@ class Api
         return $this->sendRequest('google-pay', $attributes);
     }
 
-    public function formUrl(string $attributes): string
+    public function formUrl(array $attributes): string
     {
+        $attributes = json_encode($attributes);
         $secretKey = substr($this->getPrivateKey(), 0, 32);
         $iv = substr($this->getPrivateKey(), 0, 16);
 
-        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_ZERO_PADDING, $iv);
+        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, 0, $iv);
         $encrypt = $this->base64UrlEncode($encrypt);
         $signature = $this->generateSignature($encrypt);
 
-        return sprintf(self::BASE_FORM_PATTERN_URL, $this->getMerchantId(), $encrypt, $signature);
+        return sprintf($this->formUrlPattern, $this->getMerchantId(), $encrypt, $signature);
     }
 
     public function getMerchantId(): ?string
