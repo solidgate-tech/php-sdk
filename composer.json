@@ -5,7 +5,8 @@
     "require": {
         "php": "^7.1",
         "guzzlehttp/guzzle": "^6.1",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-openssl": "*"
     },
     "license": "MIT",
     "authors": [

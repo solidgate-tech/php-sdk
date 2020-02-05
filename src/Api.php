@@ -8,6 +8,8 @@ class Api
 {
     const DEFAULT_BASE_URI = 'https://pay.solidgate.com/api/v1/';
 
+    const BASE_FORM_PATTERN_URL='https://pay.solidgate.com/api/v1/form?merchant=%s&form_data=%s&signature=%s';
+
     protected $client;
     protected $merchantId;
     protected $privateKey;
@@ -54,6 +56,53 @@ class Api
         return $this->sendRequest('init-payment', $attributes);
     }
 
+    public function resign(array $attributes): string
+    {
+        return $this->sendRequest('resign', $attributes);
+    }
+
+    public function auth(array $attributes): string
+    {
+        return $this->sendRequest('auth', $attributes);
+    }
+
+    public function void(array $attributes): string
+    {
+        return $this->sendRequest('void', $attributes);
+    }
+
+    public function settle(array $attributes): string
+    {
+        return $this->sendRequest('settle', $attributes);
+    }
+
+    public function arnCode(array $attributes): string
+    {
+        return $this->sendRequest('arn-code', $attributes);
+    }
+
+    public function applePay(array $attributes): string
+    {
+        return $this->sendRequest('apple-pay', $attributes);
+    }
+
+    public function googlePay(array $attributes): string
+    {
+        return $this->sendRequest('google-pay', $attributes);
+    }
+
+    public function formUrl(string $attributes): string
+    {
+        $secretKey = substr($this->getPrivateKey(), 0, 32);
+        $iv = substr($this->getPrivateKey(), 0, 16);
+
+        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_ZERO_PADDING, $iv);
+        $encrypt = $this->base64UrlEncode($encrypt);
+        $signature = $this->generateSignature($encrypt);
+
+        return sprintf(self::BASE_FORM_PATTERN_URL, $this->getMerchantId(), $encrypt, $signature);
+    }
+
     public function getMerchantId(): ?string
     {
         return $this->merchantId;
@@ -92,6 +141,14 @@ class Api
     {
         return $this->exception;
     }
+
+    protected function base64UrlEncode(string $data): string
+    {
+        $urlEncoded = strtr($data, '+/', '-_');
+
+        return rtrim($urlEncoded, '=');
+    }
+
 
     protected function makeRequest(string $path, array $attributes): Request
     {
