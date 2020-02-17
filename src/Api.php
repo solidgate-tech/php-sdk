@@ -8,6 +8,10 @@ class Api
 {
     const DEFAULT_BASE_URI = 'https://pay.solidgate.com/api/v1/';
 
+    const RECONCILIATION_ORDERS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/orders';
+    const RECONCILIATION_CHARGEBACKS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/chargebacks';
+    const RECONCILIATION_ALERTS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/chargeback-alerts';
+
     const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
 
     protected $client;
@@ -106,6 +110,18 @@ class Api
         return sprintf($this->formUrlPattern, $this->getMerchantId(), $encrypt, $signature);
     }
 
+    public function getUpdatedOrders(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ORDERS_URI);
+    }
+
+    public function getUpdatedChargebacks(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_CHARGEBACKS_URI);
+    }
+
+    public function getUpdatedAlerts(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_URI);
+    }
+
     public function getMerchantId(): ?string
     {
         return $this->merchantId;
@@ -152,6 +168,33 @@ class Api
         return rtrim($urlEncoded, '=');
     }
 
+    public function sendReconciliationsRequest(\DateTime $dateFrom, \DateTime $dateTo, string $url): \Generator {
+        $nextPageIterator = null;
+        do {
+            $attributes = [
+                'date_from' => $dateFrom->format('Y-m-d H:i:s'),
+                'date_to'   => $dateTo->format('Y-m-d H:i:s'),
+            ];
+
+            if ($nextPageIterator) {
+                $attributes['next_page_iterator'] = $nextPageIterator;
+            }
+
+            $request = $this->makeRequest($url, $attributes);
+            try {
+                $response = $this->client->send($request);
+                $responseArray = json_decode($response->getBody()->getContents(), true);
+                $nextPageIterator = ($responseArray['metadata'] ?? [])['next_page_iterator'] ?? null;
+
+                foreach ($responseArray['orders'] as $order) {
+                    yield $order;
+                }
+            } catch (Throwable $e) {
+                $this->exception = $e;
+                return;
+            }
+        } while ($nextPageIterator != null);
+    }
 
     protected function makeRequest(string $path, array $attributes): Request
     {
