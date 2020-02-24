@@ -1,20 +1,23 @@
 <?php namespace SolidGate\API;
 
-use GuzzleHttp\Client;
+use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Psr7\Request;
 use Throwable;
 
 class Api
 {
-    const DEFAULT_BASE_URI = 'https://pay.solidgate.com/api/v1/';
+    const BASE_SOLID_GATE_API_URI = 'https://pay.solidgate.com/api/v1/';
+    const BASE_RECONCILIATION_API_URI = 'https://reports.solidgate.com/';
 
-    const RECONCILIATION_ORDERS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/orders';
-    const RECONCILIATION_CHARGEBACKS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/chargebacks';
-    const RECONCILIATION_ALERTS_URI = 'https://reports.solidgate.com/api/v2/reconciliation/chargeback-alerts';
+    const RECONCILIATION_ORDERS_PATH = 'api/v2/reconciliation/orders';
+    const RECONCILIATION_CHARGEBACKS_PATH = 'api/v2/reconciliation/chargebacks';
+    const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
 
     const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
 
-    protected $client;
+    protected $solidGateApiClient;
+    protected $reconciliationsApiClient;
+
     protected $merchantId;
     protected $privateKey;
     protected $exception;
@@ -23,15 +26,23 @@ class Api
     public function __construct(
         string $merchantId,
         string $privateKey,
-        string $baseUri = self::DEFAULT_BASE_URI
+        string $baseSolidGateApiUri = self::BASE_SOLID_GATE_API_URI,
+        string $baseReconciliationsApiUri = self::BASE_RECONCILIATION_API_URI
     ) {
         $this->merchantId = $merchantId;
         $this->privateKey = $privateKey;
-        $this->formUrlPattern = $baseUri . self::FORM_PATTERN_URL;
+        $this->formUrlPattern = $baseSolidGateApiUri . self::FORM_PATTERN_URL;
 
-        $this->client = new Client(
+        $this->solidGateApiClient = new HttpClient(
             [
-                'base_uri' => $baseUri,
+                'base_uri' => $baseSolidGateApiUri,
+                'verify'   => true,
+            ]
+        );
+
+        $this->reconciliationsApiClient = new HttpClient(
+            [
+                'base_uri' => $baseReconciliationsApiUri,
                 'verify'   => true,
             ]
         );
@@ -111,15 +122,15 @@ class Api
     }
 
     public function getUpdatedOrders(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ORDERS_URI);
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ORDERS_PATH);
     }
 
     public function getUpdatedChargebacks(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_CHARGEBACKS_URI);
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_CHARGEBACKS_PATH);
     }
 
     public function getUpdatedAlerts(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_URI);
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_PATH);
     }
 
     public function getMerchantId(): ?string
@@ -146,7 +157,7 @@ class Api
         $request = $this->makeRequest($method, $attributes);
 
         try {
-            $response = $this->client->send($request);
+            $response = $this->solidGateApiClient->send($request);
 
             return $response->getBody()->getContents();
         } catch (Throwable $e) {
@@ -182,7 +193,7 @@ class Api
 
             $request = $this->makeRequest($url, $attributes);
             try {
-                $response = $this->client->send($request);
+                $response = $this->reconciliationsApiClient->send($request);
                 $responseArray = json_decode($response->getBody()->getContents(), true);
                 $nextPageIterator = ($responseArray['metadata'] ?? [])['next_page_iterator'] ?? null;
 
