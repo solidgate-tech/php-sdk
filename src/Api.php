@@ -112,10 +112,12 @@ class Api
     {
         $attributes = json_encode($attributes);
         $secretKey = substr($this->getPrivateKey(), 0, 32);
-        $iv = substr($this->getPrivateKey(), 0, 16);
 
-        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, 0, $iv);
-        $encrypt = $this->base64UrlEncode($encrypt);
+        $ivLen = openssl_cipher_iv_length('aes-256-cbc');
+        $iv = openssl_random_pseudo_bytes($ivLen);
+
+        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_RAW_DATA, $iv);
+        $encrypt = $this->base64UrlEncode($iv . $encrypt);
         $signature = $this->generateSignature($encrypt);
 
         return sprintf($this->formUrlPattern, $this->getMerchantId(), $encrypt, $signature);
@@ -174,7 +176,7 @@ class Api
 
     protected function base64UrlEncode(string $data): string
     {
-        $urlEncoded = strtr($data, '+/', '-_');
+        $urlEncoded = strtr(base64_encode($data), '+/', '-_');
 
         return rtrim($urlEncoded, '=');
     }
