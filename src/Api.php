@@ -9,6 +9,7 @@ class Api
     const BASE_SOLID_GATE_API_URI = 'https://pay.solidgate.com/api/v1/';
     const BASE_RECONCILIATION_API_URI = 'https://reports.solidgate.com/';
 
+    const RECONCILIATION_AF_ORDER_PATH = 'api/v2/reconciliation/antifraud/order';
     const RECONCILIATION_ORDERS_PATH = 'api/v2/reconciliation/orders';
     const RECONCILIATION_CHARGEBACKS_PATH = 'api/v2/reconciliation/chargebacks';
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
@@ -133,6 +134,23 @@ class Api
 
     public function getUpdatedAlerts(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
         return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_PATH);
+    }
+
+    public function getAntifraudOrderInformation(string $orderId): string
+    {
+        $request = $this->makeRequest(self::RECONCILIATION_AF_ORDER_PATH, [
+            'orderId' => $orderId,
+        ]);
+
+        try {
+            $response = $this->reconciliationsApiClient->send($request);
+
+            return $response->getBody()->getContents();
+        } catch (Throwable $e) {
+            $this->exception = $e;
+        }
+
+        return '';
     }
 
     public function getMerchantId(): ?string
