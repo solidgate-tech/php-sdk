@@ -139,7 +139,7 @@ class Api
     public function getAntifraudOrderInformation(string $orderId): string
     {
         $request = $this->makeRequest(self::RECONCILIATION_AF_ORDER_PATH, [
-            'orderId' => $orderId,
+            'order_id' => $orderId,
         ]);
 
         try {
