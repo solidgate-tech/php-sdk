@@ -15,6 +15,7 @@ class Api
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
 
     const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
+    const RESIGN_FORM_PATTERN_URL = 'form/resign?merchant=%s&form_data=%s&signature=%s';
 
     protected $solidGateApiClient;
     protected $reconciliationsApiClient;
@@ -23,6 +24,7 @@ class Api
     protected $privateKey;
     protected $exception;
     protected $formUrlPattern;
+    private $resignFormUrlPattern;
 
     public function __construct(
         string $merchantId,
@@ -33,6 +35,7 @@ class Api
         $this->merchantId = $merchantId;
         $this->privateKey = $privateKey;
         $this->formUrlPattern = $baseSolidGateApiUri . self::FORM_PATTERN_URL;
+        $this->resignFormUrlPattern = $baseSolidGateApiUri . self::RESIGN_FORM_PATTERN_URL;
 
         $this->solidGateApiClient = new HttpClient(
             [
@@ -111,17 +114,18 @@ class Api
 
     public function formUrl(array $attributes): string
     {
-        $attributes = json_encode($attributes);
-        $secretKey = substr($this->getPrivateKey(), 0, 32);
+        $encryptedFormData = $this->generateEncryptedFormData($attributes);
+        $signature = $this->generateSignature($encryptedFormData);
 
-        $ivLen = openssl_cipher_iv_length('aes-256-cbc');
-        $iv = openssl_random_pseudo_bytes($ivLen);
+        return sprintf($this->formUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
+    }
 
-        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_RAW_DATA, $iv);
-        $encrypt = $this->base64UrlEncode($iv . $encrypt);
-        $signature = $this->generateSignature($encrypt);
+    public function resignFormUrl(array $attributes): string
+    {
+        $encryptedFormData = $this->generateEncryptedFormData($attributes);
+        $signature = $this->generateSignature($encryptedFormData);
 
-        return sprintf($this->formUrlPattern, $this->getMerchantId(), $encrypt, $signature);
+        return sprintf($this->resignFormUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
     }
 
     public function getUpdatedOrders(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
@@ -225,6 +229,18 @@ class Api
                 return;
             }
         } while ($nextPageIterator != null);
+    }
+
+    protected function generateEncryptedFormData(array $attributes): string
+    {
+        $attributes = json_encode($attributes);
+        $secretKey = substr($this->getPrivateKey(), 0, 32);
+
+        $ivLen = openssl_cipher_iv_length('aes-256-cbc');
+        $iv = openssl_random_pseudo_bytes($ivLen);
+
+        $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_RAW_DATA, $iv);
+        return $this->base64UrlEncode($iv . $encrypt);
     }
 
     protected function makeRequest(string $path, array $attributes): Request
