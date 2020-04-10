@@ -1,3 +1,5 @@
+[![PHP version](https://badge.fury.io/ph/solidgate%2Fphp-sdk.svg)](https://badge.fury.io/ph/solidgate%2Fphp-sdk)
+
 # SolidGate API
 
 
