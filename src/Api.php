@@ -219,6 +219,10 @@ class Api
             try {
                 $response = $this->reconciliationsApiClient->send($request);
                 $responseArray = json_decode($response->getBody()->getContents(), true);
+                if (is_array($responseArray) == false || isset($responseArray['orders']) == false) {
+                    throw new \RuntimeException("Incorrect response structure. Need retry request");
+                }
+                
                 $nextPageIterator = ($responseArray['metadata'] ?? [])['next_page_iterator'] ?? null;
 
                 foreach ($responseArray['orders'] as $order) {

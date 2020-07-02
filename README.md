@@ -56,4 +56,7 @@ foreach ($orderIterator as $order) {
     // process one order
 }
 
+if ($api->getException() instanceof \Throwable) {
+    // save exception to log and retry request (if necessary)
+}
 ```
