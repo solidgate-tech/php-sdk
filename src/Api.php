@@ -13,6 +13,7 @@ class Api
     const RECONCILIATION_ORDERS_PATH = 'api/v2/reconciliation/orders';
     const RECONCILIATION_CHARGEBACKS_PATH = 'api/v2/reconciliation/chargebacks';
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
+    const RECONCILIATION_MAX_ATTEMPTS = 3;
 
     const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
     const RESIGN_FORM_PATTERN_URL = 'form/resign?merchant=%s&form_data=%s&signature=%s';
@@ -128,16 +129,29 @@ class Api
         return sprintf($this->resignFormUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
     }
 
-    public function getUpdatedOrders(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ORDERS_PATH);
+    public function getUpdatedOrders(
+        \DateTime $dateFrom,
+        \DateTime $dateTo,
+        int $maxAttempts = self::RECONCILIATION_MAX_ATTEMPTS
+    ): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ORDERS_PATH, $maxAttempts);
     }
 
-    public function getUpdatedChargebacks(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_CHARGEBACKS_PATH);
+    public function getUpdatedChargebacks(
+        \DateTime $dateFrom,
+        \DateTime $dateTo,
+        int $maxAttempts = self::RECONCILIATION_MAX_ATTEMPTS
+    ): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_CHARGEBACKS_PATH,
+            $maxAttempts);
     }
 
-    public function getUpdatedAlerts(\DateTime $dateFrom, \DateTime $dateTo): \Generator {
-        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_PATH);
+    public function getUpdatedAlerts(
+        \DateTime $dateFrom,
+        \DateTime $dateTo,
+        int $maxAttempts = self::RECONCILIATION_MAX_ATTEMPTS
+    ): \Generator {
+        return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_PATH, $maxAttempts);
     }
 
     public function getAntifraudOrderInformation(string $orderId): string
@@ -203,7 +217,12 @@ class Api
         return rtrim($urlEncoded, '=');
     }
 
-    public function sendReconciliationsRequest(\DateTime $dateFrom, \DateTime $dateTo, string $url): \Generator {
+    public function sendReconciliationsRequest(
+        \DateTime $dateFrom,
+        \DateTime $dateTo,
+        string $url,
+        int $maxAttempts
+    ): \Generator {
         $nextPageIterator = null;
         do {
             $attributes = [
@@ -217,12 +236,7 @@ class Api
 
             $request = $this->makeRequest($url, $attributes);
             try {
-                $response = $this->reconciliationsApiClient->send($request);
-                $responseArray = json_decode($response->getBody()->getContents(), true);
-                if (is_array($responseArray) == false || isset($responseArray['orders']) == false) {
-                    throw new \RuntimeException("Incorrect response structure. Need retry request");
-                }
-                
+                $responseArray = $this->sendReconciliationsRequestInternal($request, $maxAttempts);
                 $nextPageIterator = ($responseArray['metadata'] ?? [])['next_page_iterator'] ?? null;
 
                 foreach ($responseArray['orders'] as $order) {
@@ -230,9 +244,31 @@ class Api
                 }
             } catch (Throwable $e) {
                 $this->exception = $e;
+
                 return;
             }
         } while ($nextPageIterator != null);
+    }
+
+    private function sendReconciliationsRequestInternal(Request $request, int $maxAttempts): array
+    {
+        $attempt = 0;
+        $lastException = null;
+        while ($attempt < $maxAttempts) {
+            $attempt += 1;
+            try {
+                $response = $this->reconciliationsApiClient->send($request);
+                $responseArray = json_decode($response->getBody()->getContents(), true);
+                if (is_array($responseArray) && isset($responseArray['orders']) && is_array($responseArray['orders'])) {
+                    return $responseArray;
+                }
+                $lastException = new \RuntimeException("Incorrect response structure. Need retry request");
+            } catch (Throwable $e) {
+                $lastException = $e;
+            }
+        }
+
+        throw new $lastException;
     }
 
     protected function generateEncryptedFormData(array $attributes): string
@@ -244,6 +280,7 @@ class Api
         $iv = openssl_random_pseudo_bytes($ivLen);
 
         $encrypt = openssl_encrypt($attributes, 'aes-256-cbc', $secretKey, OPENSSL_RAW_DATA, $iv);
+
         return $this->base64UrlEncode($iv . $encrypt);
     }
 
