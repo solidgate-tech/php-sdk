@@ -214,7 +214,7 @@ class Api
     {
         $urlEncoded = strtr(base64_encode($data), '+/', '-_');
 
-        return rtrim($urlEncoded, '=');
+        return $urlEncoded;
     }
 
     public function sendReconciliationsRequest(
