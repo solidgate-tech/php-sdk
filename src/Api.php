@@ -2,6 +2,7 @@
 
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Psr7\Request;
+use SolidGate\API\DTO\MerchantData;
 use Throwable;
 
 class Api
@@ -127,6 +128,14 @@ class Api
         $signature = $this->generateSignature($encryptedFormData);
 
         return sprintf($this->resignFormUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
+    }
+
+    public function formMerchantData(array $attributes): MerchantData
+    {
+        $encryptedFormData = $this->generateEncryptedFormData($attributes);
+        $signature = $this->generateSignature($encryptedFormData);
+
+        return new MerchantData($encryptedFormData, $this->getMerchantId(), $signature);
     }
 
     public function getUpdatedOrders(
