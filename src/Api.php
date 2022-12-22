@@ -74,11 +74,6 @@ class Api
         return $this->sendRequest('refund', $attributes);
     }
 
-    public function initPayment(array $attributes): string
-    {
-        return $this->sendRequest('init-payment', $attributes);
-    }
-
     public function resign(array $attributes): string
     {
         return $this->sendRequest('resign', $attributes);
