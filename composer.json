@@ -1,23 +1,23 @@
 {
-    "name": "solidgate/php-sdk",
-    "description": "Php API SDK for SolidGate payment gateway",
-    "type": "library",
-    "require": {
-        "php": "^7.1|^8.0",
-        "guzzlehttp/guzzle": "^6.1|^7",
-        "ext-json": "*",
-        "ext-openssl": "*"
-    },
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "George Younger",
-            "email": "info@solidgate.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "SolidGate\\API\\": "src/"
-        }
+  "name": "solidgate/php-sdk",
+  "description": "Php API SDK for SolidGate payment gateway",
+  "type": "library",
+  "require": {
+    "php": "^7.1|^8.0",
+    "guzzlehttp/guzzle": "^6.1|^7",
+    "ext-json": "*",
+    "ext-openssl": "*"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "George Younger",
+      "email": "info@solidgate.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "SolidGate\\API\\": "src/"
+    }
+  }
 }

@@ -2,7 +2,7 @@
 
 namespace SolidGate\API\DTO;
 
-class MerchantData
+class FormInitDTO
 {
     private $paymentIntent;
 
@@ -10,10 +10,10 @@ class MerchantData
 
     private $signature;
 
-    public function __construct(string $paymentIntent, string $merchantId, string $signature)
+    public function __construct(string $paymentIntent, string $publicKey, string $signature)
     {
         $this->paymentIntent = $paymentIntent;
-        $this->merchantId = $merchantId;
+        $this->merchantId = $publicKey;
         $this->signature = $signature;
     }
 
