@@ -18,27 +18,24 @@ class Api
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
     const RECONCILIATION_MAX_ATTEMPTS = 3;
 
-    const FORM_PATTERN_URL = 'form?merchant=%s&form_data=%s&signature=%s';
     const RESIGN_FORM_PATTERN_URL = 'form/resign?merchant=%s&form_data=%s&signature=%s';
 
     protected $solidGateApiClient;
     protected $reconciliationsApiClient;
 
-    protected $merchantId;
-    protected $privateKey;
+    protected $publicKey;
+    protected $secretKey;
     protected $exception;
-    protected $formUrlPattern;
     private $resignFormUrlPattern;
 
     public function __construct(
-        string $merchantId,
-        string $privateKey,
+        string $publicKey,
+        string $secretKey,
         string $baseSolidGateApiUri = self::BASE_SOLID_GATE_API_URI,
         string $baseReconciliationsApiUri = self::BASE_RECONCILIATION_API_URI
     ) {
-        $this->merchantId = $merchantId;
-        $this->privateKey = $privateKey;
-        $this->formUrlPattern = $baseSolidGateApiUri . self::FORM_PATTERN_URL;
+        $this->publicKey = $publicKey;
+        $this->secretKey = $secretKey;
         $this->resignFormUrlPattern = $baseSolidGateApiUri . self::RESIGN_FORM_PATTERN_URL;
 
         $this->solidGateApiClient = new HttpClient(
@@ -111,20 +108,12 @@ class Api
         return $this->sendRequest('google-pay', $attributes);
     }
 
-    public function formUrl(array $attributes): string
-    {
-        $encryptedFormData = $this->generateEncryptedFormData($attributes);
-        $signature = $this->generateSignature($encryptedFormData);
-
-        return sprintf($this->formUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
-    }
-
     public function resignFormUrl(array $attributes): string
     {
         $encryptedFormData = $this->generateEncryptedFormData($attributes);
         $signature = $this->generateSignature($encryptedFormData);
 
-        return sprintf($this->resignFormUrlPattern, $this->getMerchantId(), $encryptedFormData, $signature);
+        return sprintf($this->resignFormUrlPattern, $this->getPublicKey(), $encryptedFormData, $signature);
     }
 
     public function formMerchantData(array $attributes): FormInitDTO
@@ -132,7 +121,7 @@ class Api
         $encryptedFormData = $this->generateEncryptedFormData($attributes);
         $signature = $this->generateSignature($encryptedFormData);
 
-        return new FormInitDTO($encryptedFormData, $this->getMerchantId(), $signature);
+        return new FormInitDTO($encryptedFormData, $this->getPublicKey(), $signature);
     }
 
     public function formUpdate(array $attributes): FormUpdateDTO
@@ -185,22 +174,22 @@ class Api
         return '';
     }
 
-    public function getMerchantId(): ?string
+    public function getPublicKey(): ?string
     {
-        return $this->merchantId;
+        return $this->publicKey;
     }
 
-    public function getPrivateKey(): ?string
+    public function getSecretKey(): ?string
     {
-        return $this->privateKey;
+        return $this->secretKey;
     }
 
     public function generateSignature(string $data): string
     {
         return base64_encode(
             hash_hmac('sha512',
-                $this->getMerchantId() . $data . $this->getMerchantId(),
-                $this->getPrivateKey())
+                $this->getPublicKey() . $data . $this->getPublicKey(),
+                $this->getSecretKey())
         );
     }
 
@@ -226,9 +215,7 @@ class Api
 
     protected function base64UrlEncode(string $data): string
     {
-        $urlEncoded = strtr(base64_encode($data), '+/', '-_');
-
-        return $urlEncoded;
+        return strtr(base64_encode($data), '+/', '-_');
     }
 
     public function sendReconciliationsRequest(
@@ -288,7 +275,7 @@ class Api
     protected function generateEncryptedFormData(array $attributes): string
     {
         $attributes = json_encode($attributes);
-        $secretKey = substr($this->getPrivateKey(), 0, 32);
+        $secretKey = substr($this->getSecretKey(), 0, 32);
 
         $ivLen = openssl_cipher_iv_length('aes-256-cbc');
         $iv = openssl_random_pseudo_bytes($ivLen);
@@ -305,7 +292,7 @@ class Api
         $headers = [
             'Content-Type' => 'application/json',
             'Accept'       => 'application/json',
-            'Merchant'     => $this->getMerchantId(),
+            'Merchant'     => $this->getPublicKey(),
             'Signature'    => $this->generateSignature($body),
         ];
 
