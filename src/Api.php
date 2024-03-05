@@ -4,6 +4,7 @@ use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Psr7\Request;
 use SolidGate\API\DTO\FormInitDTO;
 use SolidGate\API\DTO\FormUpdateDTO;
+use SolidGate\API\DTO\FormResignDTO;
 use SolidGate\API\DTO\MerchantData;
 use Throwable;
 
@@ -130,6 +131,14 @@ class Api
         $signature = $this->generateSignature($encryptedFormData);
 
         return new FormUpdateDTO($encryptedFormData, $signature);
+    }
+
+    public function formResign(array $attributes): FormResignDTO
+    {
+        $encryptedFormData = $this->generateEncryptedFormData($attributes);
+        $signature = $this->generateSignature($encryptedFormData);
+
+        return new FormResignDTO($encryptedFormData, $this->getPublicKey(), $signature);
     }
 
     public function getUpdatedOrders(

@@ -60,3 +60,16 @@ if ($api->getException() instanceof \Throwable) {
     // save exception to log and retry request (if necessary)
 }
 ```
+
+Form resign example
+```php
+<?php
+
+use SolidGate\API\Api;
+
+$api = new Api('YourMerchantId', 'YourPrivateKey');
+
+$response = $api->formResign(['SomePaymentAttributes from API reference']);
+
+$response->toArray(); // pass to your Frontend
+```
