@@ -4,22 +4,22 @@ namespace SolidGate\API\DTO;
 
 class FormResignDTO
 {
-    private $paymentIntent;
+    private $resignIntent;
 
     private $merchantId;
 
     private $signature;
 
-    public function __construct(string $paymentIntent, string $publicKey, string $signature)
+    public function __construct(string $resignIntent, string $publicKey, string $signature)
     {
-        $this->paymentIntent = $paymentIntent;
+        $this->resignIntent = $resignIntent;
         $this->merchantId = $publicKey;
         $this->signature = $signature;
     }
 
-    public function getPaymentIntent(): string
+    public function getResignIntent(): string
     {
-        return $this->paymentIntent;
+        return $this->resignIntent;
     }
 
     public function getMerchantId(): string
@@ -35,7 +35,7 @@ class FormResignDTO
     public function toArray(): array
     {
         return [
-            'paymentIntent' => $this->getPaymentIntent(),
+            'resignIntent'  => $this->getResignIntent(),
             'merchant'      => $this->getMerchantId(),
             'signature'     => $this->getSignature(),
         ];
