@@ -13,13 +13,10 @@ class Api
     const BASE_SOLID_GATE_API_URI = 'https://pay.solidgate.com/api/v1/';
     const BASE_RECONCILIATION_API_URI = 'https://reports.solidgate.com/';
 
-    const RECONCILIATION_AF_ORDER_PATH = 'api/v2/reconciliation/antifraud/order';
     const RECONCILIATION_ORDERS_PATH = 'api/v2/reconciliation/orders';
     const RECONCILIATION_CHARGEBACKS_PATH = 'api/v2/reconciliation/chargebacks';
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
     const RECONCILIATION_MAX_ATTEMPTS = 3;
-
-    const RESIGN_FORM_PATTERN_URL = 'form/resign?merchant=%s&form_data=%s&signature=%s';
 
     protected $solidGateApiClient;
     protected $reconciliationsApiClient;
@@ -27,7 +24,6 @@ class Api
     protected $publicKey;
     protected $secretKey;
     protected $exception;
-    private $resignFormUrlPattern;
 
     public function __construct(
         string $publicKey,
@@ -37,7 +33,6 @@ class Api
     ) {
         $this->publicKey = $publicKey;
         $this->secretKey = $secretKey;
-        $this->resignFormUrlPattern = $baseSolidGateApiUri . self::RESIGN_FORM_PATTERN_URL;
 
         $this->solidGateApiClient = new HttpClient(
             [
@@ -109,14 +104,6 @@ class Api
         return $this->sendRequest('google-pay', $attributes);
     }
 
-    public function resignFormUrl(array $attributes): string
-    {
-        $encryptedFormData = $this->generateEncryptedFormData($attributes);
-        $signature = $this->generateSignature($encryptedFormData);
-
-        return sprintf($this->resignFormUrlPattern, $this->getPublicKey(), $encryptedFormData, $signature);
-    }
-
     public function formMerchantData(array $attributes): FormInitDTO
     {
         $encryptedFormData = $this->generateEncryptedFormData($attributes);
@@ -164,23 +151,6 @@ class Api
         int $maxAttempts = self::RECONCILIATION_MAX_ATTEMPTS
     ): \Generator {
         return $this->sendReconciliationsRequest($dateFrom, $dateTo, self::RECONCILIATION_ALERTS_PATH, $maxAttempts);
-    }
-
-    public function getAntifraudOrderInformation(string $orderId): string
-    {
-        $request = $this->makeRequest(self::RECONCILIATION_AF_ORDER_PATH, [
-            'order_id' => $orderId,
-        ]);
-
-        try {
-            $response = $this->reconciliationsApiClient->send($request);
-
-            return $response->getBody()->getContents();
-        } catch (Throwable $e) {
-            $this->exception = $e;
-        }
-
-        return '';
     }
 
     public function getPublicKey(): ?string
