@@ -39,6 +39,8 @@ Check our
 * **Composer**: Dependency manager for PHP
 * **Solidgate account**: Merchant ID and secret key (request via <a href="mailto:sales@solidgate.com">sales@solidgate.com</a>)
 
+<br>
+
 ## Installation
 
 To start using the PHP SDK:
@@ -59,6 +61,8 @@ To start using the PHP SDK:
 4. Import the installed libraries into your application.
 5. Use test credentials to validate your integration.
 6. After successful testing, request production credentials and deploy your service. <br> _Composer simplifies the installation and management of SDK dependencies, ensuring seamless integration._
+
+<br>
 
 ## Usage
 
@@ -113,6 +117,8 @@ $response = $api->formResign(['SomePaymentAttributes from API reference']);
 
 $response->toArray(); // pass to your Frontend
 ```
+
+<br>
 
 ## Errors
 
