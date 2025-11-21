@@ -131,3 +131,8 @@ try {
         error_log($e->getMessage());
 }
 ```
+
+---
+
+Looking for help? <a href="https://support.solidgate.com/support/tickets/new" target="_blank">Contact us</a> <br>
+Want to contribute? <a href="https://github.com/solidgate-tech/php-sdk/pulls" target="_blank">Submit a pull request</a>
