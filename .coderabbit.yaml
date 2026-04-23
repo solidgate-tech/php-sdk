@@ -1,0 +1,107 @@
+language: en-US
+tone_instructions: Do not nitpick. Focus only on bugs, security issues, and significant design problems.
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  assess_linked_issues: true
+  related_prs: true
+  suggested_reviewers: true
+  auto_assign_reviewers: true
+  poem: false
+  in_progress_fortune: false
+  abort_on_close: true
+  high_level_summary_in_walkthrough: false
+  tools:
+    sqlfluff:
+      enabled: true
+    checkov:
+      enabled: true
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+    - WIP
+    - DO NOT MERGE
+    - DRAFT
+    drafts: false
+    base_branches:
+    - .*
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: Must start with a type prefix (feat/fix/chore/refactor/docs/test) followed by colon and space
+    description:
+      mode: warning
+  path_filters:
+  - '!**/.git/**'
+  - '!**/.ops/**'
+  - '!**/.opsctl/**'
+  path_instructions:
+  - path: '**/*'
+    instructions: "- Ensure payment data encryption at rest and proper access controls\n- Use soft deletes for payment records
+      to maintain audit trail\n- Implement proper partitioning for high-volume payment tables\n- Ensure compliance with PCI
+      DSS data retention requirements\n- Use separate schemas for sensitive payment data vs. non-sensitive data\n- Implement
+      proper backup and recovery procedures for payment data\n- Ensure proper logging of all payment-related database operations;\n\
+      - Ensure PCI DSS Level 1 compliance for all payment data handling\n- Validate payment amounts with proper decimal precision
+      for 150+ currencies\n- Use tokenization for sensitive payment data to reduce PCI scope\n- Ensure comprehensive audit
+      logging for all payment operations\n- Implement rate limiting to prevent abuse and DDoS attacks\n- Validate currency
+      codes and ensure supported currency handling\n- Check for proper error handling in payment orchestration flows\n- Review
+      code for best practices, readability, simplicity, and performance. Check for potential security issues, resource leaks,
+      and error handling problems. When you face SQL queries in code ensure: Check that only the necessary fields and rows
+      are being updated, avoiding wildcard usage or unnecessary or global modifications; Prevent SQL injection by using parameterized
+      queries and input validation; Ensure concurrency safety; Ensure queries are optimized to reduce unnecessary database
+      load;"
+  - path: '**/sql/**'
+    instructions: 'Address data modeling, schema design, and management principles, focusing on DMS compatibility and ELT/data
+      quality processes. Key considerations: Tables during creation should not use IF NOT EXISTS semantics. Primary Keys:
+      Mandatory, not JSON/JSONB, not TEXT. Identity Columns: Prefer ULID, support BIGINT SEQUENCE and UUID4 (legacy only).
+      Data Types: Use TIMESTAMP WITHOUT TIME ZONE, prefer JSONB, specify NUMERIC precision/scale. Service Columns: Include
+      id, created_at, updated_at, deleted_at (soft deletes recommended). Indexes: Index updated_at, use CREATE INDEX CONCURRENTLY,
+      restrict usage of IF NOT EXISTS. Constraints: No foreign keys, avoid COALESCE in unique constraints. Objects: No triggers,
+      views, materialized views, or procedures; limit functions to non-business logic. Other: Avoid hard deletes, unnecessary
+      DEFAULT values, and excessive transactions. Ensure adherence to architectural simplicity and DB isolation.'
+  - path: '**/proto/**'
+    instructions: 'Review the provided .proto files for adherence to API design best practices. Ensure compliance with pagination,
+      tracing, validation errors, business rule validation, filtering, versioning, and modeling guidelines. Check that: Pagination
+      follows keyset principles, returns valid page_token, and enforces page_size limits. traceID is properly handled in logs
+      and inter-service communication. Validation errors use BadRequest details and ErrorInfo for business rule violations.
+      Filters are defined inside request messages, grouped in oneof, and only one is active at a time. UI filters are correctly
+      implemented for specialized back-office cases. Stable versioning (v1, v2) is used for production APIs. Package and directory
+      structures follow naming conventions and maintain project uniqueness. Style aligns with Buf Docs standards. Avoid reserved
+      words `descriptor` and `private` as field name (reserved in Java, causes issues for AQA).'
+  - path: '**/tests/**'
+    instructions: 'Evaluate the thoroughness of mutation case testing, focusing on create, update, and delete operations.
+      Key aspects to check: unintended data changes – ensure no unexpected modifications occur beyond the intended target.
+      Concurrency Issues – identify risks of deadlocks, data races, and dirty reads in multi-threaded environments. Performance
+      Considerations – look for slow queries, resource contention, and frequent rollbacks that may impact system efficiency.
+      update: validate that only the intended entity and fields are modified. Ensure that related data and mock values remain
+      unchanged. Confirm cascading effects like cascade delete or update are handled correctly. Verify that hard deletes are
+      not used — ensure a `deleted` flag or `deleted_at` with timestamp is implemented instead. Confirm that API modifications
+      correctly filter out soft-deleted records. Ensure tests cover a wide range of scenarios to validate the integrity of
+      unaffected data. Provide feedback if some tests from key aspects are missing.'
+chat:
+  auto_reply: true
+  art: false
+knowledge_base:
+  learnings:
+    scope: global
+  code_guidelines:
+    enabled: true
+    filePatterns:
+    - CLAUDE.md
+    - .cursorrules
+    - CONVENTIONS.md
+    - CONTRIBUTING.md
