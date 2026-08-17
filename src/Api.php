@@ -18,6 +18,9 @@ class Api
     const RECONCILIATION_ALERTS_PATH = 'api/v2/reconciliation/chargeback-alerts';
     const RECONCILIATION_MAX_ATTEMPTS = 3;
 
+    const VERSION = '1.7.0';
+    const USER_AGENT = 'PHP-SDK-' . self::VERSION;
+
     protected $solidGateApiClient;
     protected $reconciliationsApiClient;
 
@@ -273,6 +276,7 @@ class Api
             'Accept'       => 'application/json',
             'Merchant'     => $this->getPublicKey(),
             'Signature'    => $this->generateSignature($body),
+            'User-Agent'   => self::USER_AGENT,
         ];
 
         return new Request('POST', $path, $headers, $body);
