@@ -175,9 +175,9 @@ class Api
         );
     }
 
-    public function sendRequest(string $method, array $attributes): string
+    public function sendRequest(string $path, array $attributes, string $method = 'POST'): string
     {
-        $request = $this->makeRequest($method, $attributes);
+        $request = $this->makeRequest($path, $attributes, $method);
 
         try {
             $response = $this->solidGateApiClient->send($request);
@@ -267,7 +267,7 @@ class Api
         return $this->base64UrlEncode($iv . $encrypt);
     }
 
-    protected function makeRequest(string $path, array $attributes): Request
+    protected function makeRequest(string $path, array $attributes, string $method = 'POST'): Request
     {
         $body = json_encode($attributes);
 
@@ -279,6 +279,6 @@ class Api
             'User-Agent'   => self::USER_AGENT,
         ];
 
-        return new Request('POST', $path, $headers, $body);
+        return new Request($method, $path, $headers, $body);
     }
 }
